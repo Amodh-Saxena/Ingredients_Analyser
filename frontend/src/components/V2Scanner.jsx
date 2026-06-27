@@ -192,20 +192,28 @@ const V2Scanner = () => {
       
       let stress = 100;
       let hasUltraProcessed = false;
+      let upfCount = 0;
+      const upfCategories = ['Preservatives', 'Emulsifiers & Thickeners', 'Industrial Fats & Oils', 'Artificial Colors', 'Flavor Enhancers', 'Sweeteners'];
+
       parsedComponents.forEach(c => {
         if (c.severity === 'High') stress -= 15;
         if (c.severity === 'Extreme') stress -= 25;
-        if (['Additives', 'Preservatives', 'Emulsifiers', 'Industrial Fats & Oils', 'Artificial Colors'].includes(c.category)) {
+        if (upfCategories.includes(c.category) || c.severity === 'Extreme') {
             stress -= 5;
             hasUltraProcessed = true;
+            upfCount++;
         }
       });
+
+      const upfScore = parsedComponents.length > 0 ? Math.round((upfCount / parsedComponents.length) * 100) : 0;
 
       setResults({
         rawText: extractedText,
         components: parsedComponents,
         stressScore: Math.min(100, Math.max(0, stress)),
-        novaClass: hasUltraProcessed ? "NOVA 4 (Ultra-Processed)" : "NOVA 1-3 (Minimally Processed)"
+        novaClass: hasUltraProcessed ? "NOVA 4 (Ultra-Processed)" : "NOVA 1-3 (Minimally Processed)",
+        upfScore: upfScore,
+        upfCount: upfCount
       });
       
       setStatus('DONE');
@@ -306,11 +314,22 @@ const V2Scanner = () => {
                     </p>
                 </div>
 
-                <div style={{ background: '#1A1A1A', color: '#FFF', padding: '30px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <Droplet size={40} color="#F4C400" />
-                    <div>
-                        <div style={{ fontSize: '0.9rem', opacity: 0.6, fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Processing Level</div>
-                        <div style={{ fontSize: '1.6rem', fontWeight: 900 }}>{results.novaClass}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div style={{ background: '#1A1A1A', color: '#FFF', padding: '20px', borderRadius: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Droplet size={24} color="#F4C400" />
+                          <span style={{ fontSize: '0.8rem', opacity: 0.6, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>Processing Level</span>
+                        </div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 900, lineHeight: 1.2 }}>{results.novaClass}</div>
+                    </div>
+
+                    <div style={{ background: '#1A1A1A', color: '#FFF', padding: '20px', borderRadius: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Activity size={24} color={results.upfScore > 50 ? '#D50000' : '#00C853'} />
+                          <span style={{ fontSize: '0.8rem', opacity: 0.6, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>UPF Score</span>
+                        </div>
+                        <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1 }}>{results.upfScore}%</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.7, fontWeight: 600 }}>Formula: ({results.upfCount} UPF / {results.components.length} Total) × 100</div>
                     </div>
                 </div>
             </div>

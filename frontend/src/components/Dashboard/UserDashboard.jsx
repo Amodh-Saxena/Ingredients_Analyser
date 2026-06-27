@@ -61,7 +61,6 @@ const UserDashboard = () => {
   // Daily Log State
   const [sleepHours, setSleepHours] = useState(8);
   const [exerciseLevel, setExerciseLevel] = useState(2);
-  const [stressLevel, setStressLevel] = useState(3);
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
@@ -115,7 +114,7 @@ const UserDashboard = () => {
       const response = await fetch('http://localhost:5000/api/dashboard/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ date: logDate, sleepHours, stressLevel, exerciseLevel })
+        body: JSON.stringify({ date: logDate, sleepHours, exerciseLevel })
       });
       const data = await response.json();
       if (data.success) {
@@ -137,29 +136,29 @@ const UserDashboard = () => {
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                                      
       const latestLog = history[history.length - 1] || {};
-      const baseLSS = latestLog.lifestyleStressScore || 30;
+      const baseLIS = latestLog.lifestyleImpactScore || 30;
       const baseSleep = (latestLog.sleepHours || 8) * 10;
       
       const dataPoints = [];
-      let totalStress = 0;
+      let totalPenalty = 0;
       let scanCount = 0;
       
       const addPoint = (label, isActualScan = false) => {
-         const avgStress = scanCount > 0 ? (totalStress / scanCount) : 30;
+         const avgPenalty = scanCount > 0 ? (totalPenalty / scanCount) : 30;
          // Slight jitter for simulated hourly points to ensure the line is curvy, not purely flat
          const jitter = isActualScan ? 0 : (Math.random() * 2 - 1); 
          dataPoints.push({
             date: label,
-            MHI: Number(Math.max(0, 100 - (0.4 * avgStress + 0.1 * baseLSS) + jitter).toFixed(2)),
+            MHI: Number(Math.max(0, 100 - (0.4 * avgPenalty + 0.1 * baseLIS) + jitter).toFixed(2)),
             Sleep: baseSleep,
-            Nutrition: Number((100 - avgStress + jitter).toFixed(2))
+            Nutrition: Number((100 - avgPenalty + jitter).toFixed(2))
          });
       };
       
       addPoint('8:00 AM');
       
       todaysScans.forEach(scan => {
-         totalStress += (scan.metabolicStressScore || 30);
+         totalPenalty += (scan.metabolicImpactScore || 30);
          scanCount++;
          const d = new Date(scan.createdAt);
          addPoint(d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), true);
@@ -186,7 +185,7 @@ const UserDashboard = () => {
       return {
         date: new Date(log.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
         MHI:  Number(Math.max(0, Math.min(100, (log.metabolicHealthIndex || 70) + jitter)).toFixed(2)),
-        LSS:  log.lifestyleStressScore || 30,
+        LIS:  log.lifestyleImpactScore || 30,
         Sleep: Math.round(Math.max(0, Math.min(100, ((log.sleepHours || 7) * 10) + (jitter * 0.5)))),
         Nutrition: Number(Math.max(0, Math.min(100, (log.dailyFoodReadiness || 85) + jitter)).toFixed(2))
       };
@@ -199,7 +198,7 @@ const UserDashboard = () => {
   const radarData = [
     { subject: 'MHI',        A: latestLog.metabolicHealthIndex || 85,                  fullMark: 100 },
     { subject: 'Sleep',      A: Math.min(100, (latestLog.sleepHours || 7) * 10),       fullMark: 100 },
-    { subject: 'Diet',       A: 100 - (latestLog.dailyFoodStress || 30),               fullMark: 100 },
+    { subject: 'Diet',       A: 100 - (latestLog.dailyFoodPenalty || 30),               fullMark: 100 },
     { subject: 'Activity',   A: Math.min(100, (latestLog.exerciseLevel || 2) * 20),    fullMark: 100 },
   ];
 
@@ -230,7 +229,7 @@ const UserDashboard = () => {
   const cleanStreak = useMemo(() => {
     const scannedDates = new Set(
       scanHistory
-        .filter(s => (s.metabolicStressScore || 30) < 40)
+        .filter(s => (s.metabolicImpactScore || 30) < 40)
         .map(s => s.createdAt?.split('T')[0])
         .filter(Boolean)
     );
@@ -524,7 +523,7 @@ const UserDashboard = () => {
                 ) : (
                   <>
                     {scanHistory.slice(0, showAllScans ? scanHistory.length : 3).map((scan, i) => {
-                      const score = scan.metabolicStressScore ?? 30;
+                      const score = scan.metabolicImpactScore ?? 30;
                       const scoreColor = score > 60 ? COLORS.RISK : score > 35 ? COLORS.CAUTION : COLORS.HEALTHY;
                       const label = score > 60 ? 'HIGH RISK' : score > 35 ? 'MODERATE' : 'CLEAN';
                       return (

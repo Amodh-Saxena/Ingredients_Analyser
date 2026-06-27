@@ -28,9 +28,9 @@ exports.getDashboardHistory = async (req, res) => {
 // @access  Private
 exports.addDailyLog = async (req, res) => {
     try {
-        const { date, sleepHours, stressLevel, exerciseLevel, weight } = req.body;
+        const { date, sleepHours, exerciseLevel, weight } = req.body;
 
-        if (!date || sleepHours === undefined || stressLevel === undefined) {
+        if (!date || sleepHours === undefined) {
              return res.status(400).json({ success: false, error: 'Missing biometric data' });
         }
 
@@ -38,7 +38,6 @@ exports.addDailyLog = async (req, res) => {
             user: req.user.id,
             date,
             sleepHours: Number(sleepHours),
-            stressLevel: Number(stressLevel),
             exerciseLevel: Number(exerciseLevel) || 0,
             weight: Number(weight) || 70,
             updatedAt: new Date().toISOString()
@@ -93,7 +92,7 @@ exports.predictMetabolicScore = async (req, res) => {
             .where('user', '==', req.user.id)
             .get();
             
-        let totalStress = 0;
+        let totalPenalty = 0;
         let scanCount = 0;
 
         scansSnapshot.forEach(doc => {
@@ -101,26 +100,26 @@ exports.predictMetabolicScore = async (req, res) => {
             const scanDate = data.createdAt ? (data.createdAt.split ? data.createdAt.split('T')[0] : data.createdAt.toDate().toISOString().split('T')[0]) : null;
 
             if (scanDate === dateStr) {
-                totalStress += (data.metabolicStressScore || 30);
+                totalPenalty += (data.metabolicImpactScore || 30);
                 scanCount++;
             }
         });
 
-        const dailyFoodStress = scanCount > 0 ? (totalStress / scanCount) : 30;  // Ns
+        const dailyFoodPenalty = scanCount > 0 ? (totalPenalty / scanCount) : 30;  // Ns
 
-        // 2. Lifestyle Stress Score (LSS) — Scientific Formula
+        // 2. Lifestyle Impact Score (LIS) — Scientific Formula
         // Ls = ((8 - Sh)^2 × 2) + ((5 - El) × 6)
         const sleepHours  = logData.sleepHours  || 7;      // Sh — hours slept
         const exerciseLevel = logData.exerciseLevel || 2;  // El — 0-5 activity level
 
         const sleepPenalty    = Math.pow(8 - sleepHours, 2) * 2;  // Quadratic sleep debt
         const exercisePenalty = Math.max(0, (5 - exerciseLevel)) * 6; // Linear inactivity cost
-        const lifestyleStressScore = Math.max(0, Math.min(100, sleepPenalty + exercisePenalty));
+        const lifestyleImpactScore = Math.max(0, Math.min(100, sleepPenalty + exercisePenalty));
 
         // 3. Core MHI Formula
         // MHI = 100 - (0.4 × Ns + 0.1 × Ls)
         const metabolicHealthIndex = Math.max(0, Math.min(100,
-            100 - ((dailyFoodStress * 0.4) + (lifestyleStressScore * 0.1))
+            100 - ((dailyFoodPenalty * 0.4) + (lifestyleImpactScore * 0.1))
         ));
 
         const sanitize = (val) => {
@@ -129,8 +128,8 @@ exports.predictMetabolicScore = async (req, res) => {
         };
 
         const updateData = { 
-            dailyFoodStress:      sanitize(dailyFoodStress),
-            lifestyleStressScore: sanitize(lifestyleStressScore),
+            dailyFoodPenalty:      sanitize(dailyFoodPenalty),
+            lifestyleImpactScore: sanitize(lifestyleImpactScore),
             metabolicHealthIndex: sanitize(metabolicHealthIndex),
             predictedScore:       sanitize(metabolicHealthIndex)
         };

@@ -182,7 +182,7 @@ const AnimatedStory = ({ onComplete }) => {
               transition={{ delay: 0.1 }}
               style={{ fontSize: '1.25rem', color: '#555', maxWidth: '750px', margin: '0 auto', lineHeight: 1.8, fontWeight: 500 }}
             >
-              We combine advanced Gemini AI with a comprehensive food additive database to give you the most accurate ingredient analysis available.
+              We use a comprehensive proprietary food additive database and advanced optical character recognition to give you the most accurate ingredient analysis available.
             </motion.p>
           </div>
 
@@ -191,7 +191,7 @@ const AnimatedStory = ({ onComplete }) => {
             {[
               { icon: '🔍', title: 'Instant Ingredient Detection', bg: '#E4F4FF', desc: 'Stop squinting at tiny font labels. Our OCR technology reads every single ingredient instantly, identifying hidden chemical names and grouping them by category.' },
               { icon: '🛡️', title: 'Smart Allergy Filtering', bg: '#FFE4E4', desc: "Set your dietary profile and we'll automatically flag any ingredients that conflict with your allergies or health goals, from gluten to specific E-numbers." },
-              { icon: '🤖', title: 'AI-Powered Insights', bg: '#E4FFE4', desc: 'Go beyond simple facts. Our Gemini-powered AI provides a detailed summary of how specific ingredients impact your unique metabolic health profile.' }
+              { icon: '🧪', title: 'Clinical Severity Scoring', bg: '#E4FFE4', desc: 'Every ingredient is mapped against toxicological data to calculate your overall Metabolic Impact Score and Ultra-Processed Food (UPF) content.' }
             ].map((feature, i) => (
               <motion.div 
                 key={i}
